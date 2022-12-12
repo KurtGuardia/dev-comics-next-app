@@ -1,8 +1,8 @@
 import Head from 'next/head'
 import Link from 'next/link'
 import Image from 'next/image'
-import Header from '../components/Header'
 import fs from 'fs/promises'
+import Layout from '../components/Layout'
 
 export default function Home({ latestComics }) {
   return (
@@ -15,8 +15,8 @@ export default function Home({ latestComics }) {
         />
         <link rel='icon' href='/favicon.ico' />
       </Head>
-      <Header />
-      <main>
+
+      <Layout>
         <h2 className='text-3xl font-bold text-center mb-10'>
           Latest Comics
         </h2>
@@ -44,7 +44,7 @@ export default function Home({ latestComics }) {
             )
           })}
         </section>
-      </main>
+      </Layout>
     </>
   )
 }

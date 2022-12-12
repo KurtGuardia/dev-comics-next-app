@@ -1,11 +1,20 @@
 import Head from 'next/head'
 import Image from 'next/image'
-import Header from '../../components/Header'
-import { readFile } from 'fs/promises'
+import { readFile, stat, readdir } from 'fs/promises'
 import { useEffect, useState } from 'react'
-import { stat } from 'fs/promises'
+import Link from 'next/link'
+import { basename } from 'path'
+import Layout from '../../components/Layout'
 
-export default ({ img, alt, title }) => {
+export default ({
+  img,
+  alt,
+  title,
+  hasNext,
+  hasPrevious,
+  nextId,
+  prevId,
+}) => {
   const [display, setDisplay] = useState(false)
   useEffect(() => {
     if (img !== undefined) {
@@ -23,12 +32,11 @@ export default ({ img, alt, title }) => {
         />
         <link rel='icon' href='/favicon.ico' />
       </Head>
-
-      <Header />
-
-      <main>
+      <Layout>
         <section className='max-w-lg m-auto'>
-          <h1>{title}</h1>
+          <h1 className='font-bold text-xl text-center mb-4'>
+            {title}
+          </h1>
           {display ? (
             <Image
               width={450}
@@ -40,15 +48,35 @@ export default ({ img, alt, title }) => {
             ''
           )}
           <p>{alt}</p>
+
+          <div className='flex justify-between mt-4 font-bold'>
+            {hasPrevious && (
+              <Link href={`/comic/${prevId}`}>
+                <a className='text-gray-600'>Previous</a>
+              </Link>
+            )}
+            {hasNext && (
+              <Link href={`/comic/${nextId}`}>
+                <a className='text-gray-600'>Next</a>
+              </Link>
+            )}
+          </div>
         </section>
-      </main>
+      </Layout>
     </>
   )
 }
 
 export async function getStaticPaths() {
+  const files = await readdir('./comics')
+
+  const paths = files.map((file) => {
+    const id = basename(file, '.json')
+    return { params: { id } }
+  })
+
   return {
-    paths: [{ params: { id: '2500' } }],
+    paths,
     fallback: true,
   }
 }
@@ -65,42 +93,23 @@ export async function getStaticProps({ params }) {
   const prevId = idNumber - 1
   const nextId = idNumber + 1
 
-  const results = Promise.allSettled([
-    stat(`./comics/${prevId}.json`, (error, stats) => {
-      if (error) {
-        console.log(error)
-      } else {
-        console.log(stats)
+  const [prevResult, nextResult] = await Promise.allSettled(
+    [
+      stat(`./comics/${prevId}.json`),
+      stat(`./comics/${nextId}.json`),
+    ],
+  )
 
-        // Using methods of the Stats object
-        console.log('Path is file:', stats.isFile())
-        console.log(
-          'Path is directory:',
-          stats.isDirectory(),
-        )
-      }
-    }),
-    stat(`./comics/${nextId}.json`, (error, stats) => {
-      if (error) {
-        console.log(error)
-      } else {
-        console.log(stats)
-
-        // Using methods of the Stats object
-        console.log('Path is file:', stats.isFile())
-        console.log(
-          'Path is directory:',
-          stats.isDirectory(),
-        )
-      }
-    }),
-  ])
-
-  console.log(results)
+  const hasNext = nextResult.status === 'fulfilled'
+  const hasPrevious = prevResult.status === 'fulfilled'
 
   return {
     props: {
       ...comic,
+      hasNext,
+      hasPrevious,
+      nextId,
+      prevId,
     },
   }
 }
